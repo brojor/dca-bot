@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@coinbase-sample/core-ts": "^0.2.2",
-    "coinbase-advanced-sdk": "github:brojor/advanced-sdk-ts"
+    "coinbase-advanced-sdk": "github:brojor/advanced-sdk-ts",
+    "node-cron": "^4.2.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^5.4.1",

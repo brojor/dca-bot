@@ -1,24 +1,27 @@
 import process from 'node:process'
-import { AccountsService, CoinbaseAdvTradeClient, CoinbaseAdvTradeCredentials } from 'coinbase-advanced-sdk/dist'
+import cron from 'node-cron'
+import { makeOrder } from './job'
 import '@dotenvx/dotenvx/config'
 
-const KEY_NAME = process.env.KEY_NAME
-const PRIVATE_KEY = process.env.PRIVATE_KEY
+const CRON_EXPR = process.env.CRON_EXPR ?? '0 12 * * 2'
+const TIMEZONE = process.env.TZ ?? 'Europe/Prague'
 
-const credentials = new CoinbaseAdvTradeCredentials(
-  KEY_NAME,
-  PRIVATE_KEY,
-)
+console.log(`[INIT] Scheduling job with CRON="${CRON_EXPR}" TZ="${TIMEZONE}"`)
 
-const client = new CoinbaseAdvTradeClient(credentials)
+if (!cron.validate(CRON_EXPR)) {
+  throw new Error(`Invalid CRON expression: ${CRON_EXPR}`)
+}
 
-const accountService = new AccountsService(client)
+cron.schedule(CRON_EXPR, async () => {
+  console.log('[JOB] Triggered at', new Date().toISOString())
+  await makeOrder()
+}, { timezone: TIMEZONE })
 
-accountService
-  .listAccounts({})
-  .then((result) => {
-    console.log(result)
-  })
-  .catch((error) => {
-    console.error(error.message)
-  })
+process.on('SIGTERM', () => {
+  console.log('[SHUTDOWN] SIGTERM received, exiting...')
+  process.exit(0)
+})
+process.on('SIGINT', () => {
+  console.log('[SHUTDOWN] SIGINT received, exiting...')
+  process.exit(0)
+})
