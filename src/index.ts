@@ -1,12 +1,15 @@
 import process from 'node:process'
 import cron from 'node-cron'
+import { startHealthServer } from './health'
 import { makeOrder } from './job'
 import '@dotenvx/dotenvx/config'
 
 const CRON_EXPR = process.env.CRON_EXPR ?? '0 12 * * 2'
 const TIMEZONE = process.env.TZ ?? 'Europe/Prague'
+const HEALTH_PORT = Number(process.env.HEALTH_PORT) ?? 3000
 
 console.log(`[INIT] Scheduling job with CRON="${CRON_EXPR}" TZ="${TIMEZONE}"`)
+startHealthServer(HEALTH_PORT)
 
 if (!cron.validate(CRON_EXPR)) {
   throw new Error(`Invalid CRON expression: ${CRON_EXPR}`)

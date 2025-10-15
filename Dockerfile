@@ -54,12 +54,12 @@ RUN pnpm run build
 # where the necessary files are copied from the build stage.
 FROM base as final
 
-# Use production node environment by default.
-ENV NODE_ENV production
+ENV NODE_ENV=production
+# NEW: výchozí TZ + port pro health endpoint (můžeš přepsat env proměnnou při run)
+ENV TZ=Europe/Prague
+ENV HEALTH_PORT=3000
 
-# Run the application as a non-root user.
-USER node
-
+# NEW: nejdřív zkopíruj jako root, pak přepni na node (lepší kvůli právům)
 # Copy package.json so that package manager commands can be used.
 COPY package.json .
 
@@ -68,9 +68,19 @@ COPY package.json .
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 
+# NEW: nastav vlastnictví, aby node user neměl problém s přístupem (volitelné, ale bezpečné)
+RUN chown -R node:node /usr/src/app
 
 # Expose the port that the application listens on.
 EXPOSE 3000
+
+# NEW: HEALTHCHECK bez curl/wget – čistě Node
+# - exit 0 pokud / vrátí 200, jinak 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "const http=require('http');const p=process.env.HEALTH_PORT||3000;const req=http.get({host:'127.0.0.1',port:p,path:'/health'},res=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));"
+
+# Run the application as a non-root user.
+USER node
 
 # Run the application.
 CMD pnpm start
